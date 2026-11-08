@@ -274,4 +274,71 @@ Run the automated test suite for the MLflow intelligence tools:
 pytest tests/test_mlflow_tools.py -v
 ```
 
+---
+
+## 8. Task 3: Apache Airflow Workflow Automation
+
+The Airflow Workflow Automation Agent (`agent/tools/airflow_tools.py`) and training DAG (`dags/training_pipeline.py`) provide end-to-end orchestration and asynchronous management of model training pipelines through the Airflow 3 / 2 REST API.
+
+### 8.1 5-Stage Airflow DAG Architecture (`mlops_model_training_pipeline`)
+
+The DAG organizes the end-to-end pipeline into 5 strictly sequential stages:
+
+```mermaid
+flowchart LR
+    V["1. validate_data"] --> P["2. preprocess_data"]
+    P --> T["3. train_model"]
+    T --> E["4. evaluate_and_log_mlflow"]
+    E --> Q["5. quality_gate"]
+```
+
+1. **`validate_data`**: Asserts `data/dataset.csv` exists, has at least 50 records, contains required target column, has null ratio `<= 0.05`, and captures the DVC content hash. Raises `ValueError` to abort the pipeline early on invalid data.
+2. **`preprocess_data`**: Splits features and target with stratification, writing partitioned numpy arrays to `data/processed/`.
+3. **`train_model`**: Trains the Random Forest classifier and checkpoints the model to `models/candidate_model.joblib`.
+4. **`evaluate_and_log_mlflow`**: Evaluates model metrics (Accuracy, Precision, Recall, F1, ROC-AUC), logs parameters and tags (`git_commit`, `dvc_md5`) to MLflow, and exports cloudpickle model artifacts.
+5. **`quality_gate`**: Evaluates candidate model performance against strict production thresholds (`f1_score >= 0.75` and `accuracy >= 0.75`). If criteria fail, raises a `RuntimeError` to block deployment; if criteria pass, promotes/registers the model in the MLflow Model Registry.
+
+### 8.2 Execution & Configuration
+
+The DAG tasks can be tested standalone or scheduled within Apache Airflow:
+
+```bash
+# Test all 5 DAG stages standalone in Python
+python -c "
+from dags.training_pipeline import *
+task_validate_data()
+task_preprocess_data()
+task_train_model()
+task_evaluate_and_log_mlflow()
+task_quality_gate()
+"
+```
+
+Configure your Airflow connection in `.env`:
+- `AIRFLOW_BASE_URL`: Airflow API endpoint (default: `http://localhost:8080/api/v2`).
+- `AIRFLOW_USERNAME`: Basic auth username.
+- `AIRFLOW_PASSWORD`: Basic auth password.
+- `AIRFLOW_API_TOKEN`: Optional Bearer token authentication.
+
+### 8.3 Airflow Agent Tools & Security Guardrails
+
+The 5 callable tools in `agent/tools/airflow_tools.py` include:
+
+| Tool Function | Description |
+|---|---|
+| `list_available_dags()` | Queries `/dags` to retrieve available DAGs, pause status, and schedules. |
+| `get_dag_run_status(dag_id, dag_run_id)` | Inspects execution state (`queued`, `running`, `success`, `failed`) and run timestamps. |
+| `trigger_training_dag(dag_id, conf)` | Validates DAG against `APPROVED_DAGS` allowlist and triggers a new run via POST `/dags/{dag_id}/dagRuns`. **Rejects unapproved DAGs with `BLOCKED` status.** |
+| `identify_failed_tasks(dag_id, dag_run_id)` | Queries task instances to detect failed or upstream-failed tasks. |
+| `get_task_diagnostics(dag_id, dag_run_id, task_id)` | Fetches task logs and analyzes error patterns to provide actionable remediation steps. |
+
+### 8.4 Running Task 3 Tests
+
+Run the automated test suite for the Airflow DAG and workflow tools:
+
+```bash
+pytest tests/test_airflow_tools.py -v
+```
+
+
 

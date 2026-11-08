@@ -329,6 +329,7 @@ class AirflowGetDagRunStatusOutput(BaseModel):
     state: str = Field(description="Current state: queued, running, success, failed")
     start_date: str | None = Field(default=None, description="DAG run start time")
     end_date: str | None = Field(default=None, description="DAG run end time")
+    recent_runs: list[dict[str, Any]] = Field(default_factory=list, description="Recent execution runs for this DAG")
 
 
 class AirflowListDagsInput(BaseModel):
@@ -341,6 +342,28 @@ class AirflowListDagsOutput(BaseModel):
     """Output list of DAGs from Airflow."""
     total_entries: int = Field(description="Total number of DAGs available")
     dags: list[dict[str, Any]] = Field(default_factory=list, description="List of DAG summaries")
+
+
+class AirflowIdentifyFailedTasksOutput(BaseModel):
+    """Output schema for failed task identification in a DAG run."""
+    dag_id: str = Field(description="DAG identifier")
+    dag_run_id: str = Field(description="DAG run identifier")
+    failed_tasks: list[dict[str, Any]] = Field(default_factory=list, description="Tasks in failed or upstream_failed state")
+    total_failed: int = Field(ge=0, description="Count of failed task instances")
+    summary: str = Field(description="Human-readable diagnosis summary")
+
+
+class AirflowTaskDiagnosticsOutput(BaseModel):
+    """Output schema for in-depth task instance diagnostics and logs."""
+    dag_id: str = Field(description="DAG identifier")
+    dag_run_id: str = Field(description="DAG run identifier")
+    task_id: str = Field(description="Task identifier inspected")
+    try_number: int = Field(ge=1, description="Attempt number")
+    state: str = Field(description="Task state")
+    error_message: str | None = Field(default=None, description="Extracted error reason or exception")
+    logs: str = Field(description="Task log snippet or diagnosis")
+    recommendations: list[str] = Field(default_factory=list, description="Actionable remediation steps")
+
 
 
 # ==============================================================================

@@ -35,6 +35,9 @@ mlartifacts/
 .dvc/cache/
 .dvc/tmp/
 .dvc_storage/
+data/processed/
+*.npy
+
 
 
 # Logs

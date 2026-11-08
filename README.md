@@ -210,3 +210,68 @@ Run the automated test suite for the DVC tools:
 pytest tests/test_dvc_tools.py -v
 ```
 
+---
+
+## 7. Task 2: MLflow Experiment Intelligence
+
+The MLflow Experiment Intelligence Agent (`agent/tools/mlflow_tools.py`) uses `mlflow.tracking.MlflowClient` exclusively to programmatically audit experiments, evaluate candidate runs against multi-criteria production readiness policies, compare model performance trade-offs, and inspect the MLflow Model Registry.
+
+### 7.1 Running the Modular Training Pipeline
+
+The training script (`training/train.py`) executes a modular scikit-learn training workflow:
+- **Data Validation**: Asserts schema, row count (>= 50), missingness, and minority class balance.
+- **Preprocessing**: Stratified train/test splitting (`X_train`, `X_test`, `y_train`, `y_test`).
+- **Model Training**: Configurable between Random Forest, Gradient Boosting, and Logistic Regression.
+- **Evaluation**: Computes accuracy, precision, recall, F1 score, ROC-AUC, and train-test overfitting gap.
+- **Quality Gate**: Asserts minimum F1 threshold (`>= 0.75`) and bounded overfitting gap (`<= 0.20`).
+- **Provenance Logging**: Automatically logs hyperparameters, metrics, model artifacts, and provenance tags (`dataset_version`, `dvc_md5`, `git_commit`, `quality_gate_passed`, `quality_gate_reason`).
+
+#### Example Training Commands:
+```bash
+# 1. Balanced Random Forest (Baseline - Passes Quality Gate)
+python -m training.train --model-type random_forest --n-estimators 100 --max-depth 5
+
+# 2. High-Complexity Random Forest (High capacity / Overfitting evaluation)
+python -m training.train --model-type random_forest --n-estimators 250 --max-depth 15
+
+# 3. Gradient Boosting Classifier (High performance)
+python -m training.train --model-type gradient_boosting --n-estimators 100 --learning-rate 0.08 --max-depth 3
+
+# 4. Logistic Regression (Linear model)
+python -m training.train --model-type logistic_regression --c-param 1.0
+
+# 5. Underfitted Random Forest (Fails Quality Gate: F1 < 0.75)
+python -m training.train --model-type random_forest --n-estimators 5 --max-depth 1 --min-f1 0.75
+```
+
+### 7.2 Launching the MLflow UI
+
+View experiments, metrics curves, and the Model Registry in the browser:
+
+```bash
+# Launch MLflow UI connected to the SQLite backend
+mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5000
+```
+Open [http://localhost:5000](http://localhost:5000) in your web browser.
+
+### 7.3 MLflow Agent Tools
+
+The 5 callable tools in `agent/tools/mlflow_tools.py` include:
+
+| Tool Function | Description |
+|---|---|
+| `list_experiments_and_runs()` | Lists active experiments and recent training runs with statuses, timestamps, and parameters. |
+| `get_run_details(run_id)` | Retrieves full metrics, hyperparameters, artifact paths, and dataset provenance tags (`dataset_version`, `git_commit`, `dvc_md5`). |
+| `find_best_run(exp, metric, min_threshold)` | Finds top-performing candidate and performs comprehensive production-readiness check (quality gate, overfitting gap, provenance audit). **Explicitly verifies that highest metric score alone does not guarantee production readiness.** |
+| `compare_runs(run_ids)` | Side-by-side comparative matrix across metrics, hyperparameters, and dataset versions with trade-off analysis. |
+| `get_model_registry_info(model_name)` | Inspects registered models, current versions, lifecycle stages, and aliases. |
+
+### 7.4 Running Task 2 Tests
+
+Run the automated test suite for the MLflow intelligence tools:
+
+```bash
+pytest tests/test_mlflow_tools.py -v
+```
+
+

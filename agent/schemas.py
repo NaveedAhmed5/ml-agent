@@ -245,6 +245,58 @@ class MLflowGetLatestModelOutput(BaseModel):
     source: str = Field(description="Artifact source path/URI")
 
 
+class MLflowListExperimentsRunsOutput(BaseModel):
+    """Output schema for listing experiments and runs."""
+    experiments: list[dict[str, Any]] = Field(default_factory=list, description="Available experiments")
+    runs: list[dict[str, Any]] = Field(default_factory=list, description="Recent runs across experiments")
+    total_runs: int = Field(ge=0, description="Total runs retrieved")
+
+
+class MLflowRunDetailsOutput(BaseModel):
+    """Output schema for detailed run inspection."""
+    run_id: str = Field(description="Unique run ID")
+    experiment_id: str = Field(description="Experiment ID")
+    status: str = Field(description="Run status: FINISHED, FAILED, RUNNING, etc.")
+    metrics: dict[str, float] = Field(default_factory=dict, description="Logged evaluation metrics")
+    params: dict[str, Any] = Field(default_factory=dict, description="Hyperparameters logged")
+    tags: dict[str, str] = Field(default_factory=dict, description="Metadata and provenance tags")
+    provenance: dict[str, Any] = Field(default_factory=dict, description="Parsed dataset and git provenance")
+    artifact_paths: list[str] = Field(default_factory=list, description="Artifact directory contents")
+    start_time: str | int | None = Field(default=None, description="Run start time")
+
+
+class MLflowBestRunOutput(BaseModel):
+    """Output schema for finding the best run with production-readiness check."""
+    best_run_id: str = Field(description="ID of the highest-performing run")
+    experiment_name: str = Field(description="Experiment evaluated")
+    target_metric: str = Field(description="Metric used for ranking")
+    metric_value: float = Field(description="Achieved score on target metric")
+    params: dict[str, Any] = Field(default_factory=dict, description="Parameters of best run")
+    metrics: dict[str, float] = Field(default_factory=dict, description="All metrics of best run")
+    is_production_ready: bool = Field(description="Whether run satisfies production-readiness criteria")
+    readiness_evaluation: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Checklist results: quality gate, overfitting gap, provenance completeness",
+    )
+    evaluation_notes: str = Field(
+        description="Detailed assessment emphasizing that metric score alone does not guarantee production readiness",
+    )
+
+
+class MLflowCompareRunsOutput(BaseModel):
+    """Output schema for side-by-side run comparisons."""
+    run_ids: list[str] = Field(description="List of compared run IDs")
+    comparison_table: list[dict[str, Any]] = Field(default_factory=list, description="Structured matrix of compared runs")
+    tradeoffs_summary: str = Field(description="Executive analysis of model trade-offs")
+
+
+class MLflowModelRegistryOutput(BaseModel):
+    """Output schema for MLflow Model Registry state."""
+    registered_models: list[dict[str, Any]] = Field(default_factory=list, description="List of registered models")
+    total_models: int = Field(ge=0, description="Count of registered models")
+
+
+
 # ==============================================================================
 # 3. Airflow Tool Schemas (Airflow 3 / 2 REST API compatible)
 # ==============================================================================

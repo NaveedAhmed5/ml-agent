@@ -1,0 +1,19 @@
+stages:
+  validate_data:
+    cmd: python -m training.validate_data --input data/dataset.csv --output data/validation_report.json
+    deps:
+      - data/dataset.csv
+      - training/validate_data.py
+    outs:
+      - data/validation_report.json
+
+  train:
+    cmd: python -m training.train --data data/dataset.csv --metrics metrics.json --output models/model.joblib
+    deps:
+      - data/dataset.csv
+      - training/train.py
+    outs:
+      - models/model.joblib
+    metrics:
+      - metrics.json:
+          cache: false

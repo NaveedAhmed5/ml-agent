@@ -1,0 +1,59 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Testing & Linting caches
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Environment and secrets
+.env
+*.env
+!.env.example
+
+# MLflow tracking and artifacts
+mlruns/
+mlartifacts/
+*.joblib
+
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# DVC local data, caches, and temp files
+.dvc/cache/
+.dvc/tmp/
+.dvc_storage/
+
+
+# Logs
+logs/
+*.log
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Operating System files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+

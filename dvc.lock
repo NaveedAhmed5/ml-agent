@@ -1,0 +1,40 @@
+schema: '2.0'
+stages:
+  validate_data:
+    cmd: python -m training.validate_data --input data/dataset.csv --output 
+      data/validation_report.json
+    deps:
+    - path: data/dataset.csv
+      hash: md5
+      md5: 20dddf1322b04510c40e7745c27acf46
+      size: 159978
+    - path: training/validate_data.py
+      hash: md5
+      md5: 3e3464603cd7d1b321c0e92decdde297
+      size: 2089
+    outs:
+    - path: data/validation_report.json
+      hash: md5
+      md5: 289288af10f3ff52746ea1640009221f
+      size: 253
+  train:
+    cmd: python -m training.train --data data/dataset.csv --metrics metrics.json
+      --output models/model.joblib
+    deps:
+    - path: data/dataset.csv
+      hash: md5
+      md5: 20dddf1322b04510c40e7745c27acf46
+      size: 159978
+    - path: training/train.py
+      hash: md5
+      md5: fc52ca09efbfd84f5f4592806586b181
+      size: 5485
+    outs:
+    - path: metrics.json
+      hash: md5
+      md5: 5fd16b8762c9a5b10000ef20e9caff92
+      size: 90
+    - path: models/model.joblib
+      hash: md5
+      md5: 8f71f78dab6177c5c7d67cb66cadfdd1
+      size: 235513

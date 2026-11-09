@@ -427,7 +427,7 @@ The Kubernetes Operations Agent (`agent/tools/kubernetes_tools.py`) interacts wi
 | `get_deployed_app_version(namespace)` | Inspects deployed container images and active ConfigMap values to audit active release and model version provenance. |
 | `scale_or_restart_deployment(...)` | Safely scales replica count or initiates rolling restart (via pod template annotations). **Enforces explicit confirmation gate (`user_confirmed=True`).** |
 
-### 9.5 Running Task 4 and Full Test Suite
+### 9.5 Running Task 4 Tests
 
 Run the automated test suites for the inference API and Kubernetes operations tools:
 
@@ -437,10 +437,122 @@ pytest tests/test_api.py -v
 
 # Run Kubernetes operations agent tests
 pytest tests/test_kubernetes_tools.py -v
+```
 
-# Run complete project test suite across all 4 domains (49 tests)
+---
+
+## 10. Phase 5: Autonomous Multi-Tool Agent Orchestrator & CLI
+
+The **Intelligent Multi-Tool Agent** integrates the four specialized domains (DVC, MLflow, Airflow, and Kubernetes) into a unified, autonomous orchestration engine ([`agent/orchestrator.py`](agent/orchestrator.py)) controlled via a versatile Command Line Interface ([`agent/main.py`](agent/main.py)).
+
+### 10.1 Orchestrator Architecture & Reasoning Engine
+
+The orchestrator manages 21 registered tools across the four MLOps domains:
+
+```mermaid
+flowchart TD
+    User["User Goal / Query"] --> Agent["MLOps Autonomous AI Agent (orchestrator.py)"]
+    Agent --> Registry["Tool Registry (21 Tools)"]
+    Registry --> DVC["DVC Tools (5)<br/>- Data tracking<br/>- MD5 & Git hashes<br/>- Change detection"]
+    Registry --> MLflow["MLflow Tools (5)<br/>- Run tracking<br/>- Best run evaluation<br/>- Model registry"]
+    Registry --> Airflow["Airflow Tools (5)<br/>- DAG status<br/>- Task diagnostics<br/>- Guarded triggers"]
+    Registry --> K8s["Kubernetes Tools (6)<br/>- Pod & deployment health<br/>- Service discovery<br/>- Failure diagnosis"]
+    
+    DVC --> Synthesis["Evidence Synthesis Engine"]
+    MLflow --> Synthesis
+    Airflow --> Synthesis
+    K8s --> Synthesis
+    
+    Synthesis --> Output["Structured Grounded Report<br/>1. Known Facts (Tool Evidence)<br/>2. Uncertainties / Unavailable Data<br/>3. Recommended Actions & Retraining Policy"]
+```
+
+#### Dual Execution Strategy:
+1. **LLM Function Calling**:
+   Uses Google Gemini (`google.genai`) or OpenAI-compatible APIs (`openai`) configured via `.env` (`LLM_PROVIDER`, `LLM_API_KEY`, `LLM_MODEL`). Executes dynamic multi-turn tool-calling loops with strict system grounding.
+2. **Deterministic Rule-Aware Router (Offline & CI Fallback)**:
+   When running offline, without an LLM key, or if network connectivity is unavailable, the orchestrator seamlessly activates an intelligent, rule-aware router that analyzes user goal semantics, coordinates the appropriate multi-tool chain, and synthesizes grounded reports.
+
+#### System Prompt & Enterprise Reasoning Constraints:
+- **Strict Grounding**: Every operational claim must cite specific tool outputs (Run IDs, F1 scores, DVC MD5 hashes, Git commit SHAs, Pod phases, or DAG execution states). The agent **never** invents or hallucinates telemetry.
+- **Transparent Outage Reporting**: If a service (such as Airflow REST API or Kubernetes apiserver) is offline or unreachable, the agent explicitly documents the failure under `Uncertainties / Unavailable Data` rather than guessing state.
+- **Mandatory Retraining Policy**:
+  - The agent **never** triggers Airflow retraining automatically when asked whether retraining is needed.
+  - Retraining is recommended **only** when supported by concrete tool evidence: uncommitted dataset drift, failed quality gates, degraded metric thresholds, or upstream pipeline failures.
+  - When the model satisfies production thresholds, the dataset is clean, and the deployment is healthy, the agent explicitly concludes that **no retraining is necessary**.
+
+---
+
+### 10.2 Command Line Interface Modes (`agent/main.py`)
+
+The agent CLI supports single-query execution, automated JSON pipelines, and full interactive sessions:
+
+#### Mode 1: Single-Query CLI (`--query` / `--goal`)
+```bash
+python -m agent.main --query "Find the best recent model, identify the dataset version used to train it, check the deployment status, and explain whether retraining is necessary."
+```
+
+#### Mode 2: Automated JSON Output (`--json`)
+Emits a structured JSON payload conforming to the `AgentResponse` schema, capturing `request_id`, `goal`, `status`, `steps_executed` (with duration and data), and `summary`:
+```bash
+python -m agent.main --query "Find the best recent model and check deployment status" --json
+```
+
+#### Mode 3: Interactive REPL Mode
+```bash
+python -m agent.main
+```
+Commands within the interactive session:
+- `help`: Displays sample queries for all 5 evaluation scenarios.
+- `tools`: Lists all 21 registered tools grouped by domain with schemas.
+- `clear`: Clears the screen.
+- `exit` / `quit`: Exits the session.
+
+---
+
+### 10.3 The 5 Evaluation Scenarios & CLI Usage Examples
+
+#### Scenario 1: DVC Data Management Agent
+Verifies tracked datasets, checks current dataset version/MD5 and Git commit, and inspects for uncommitted data changes:
+```bash
+python -m agent.main --query "List all DVC tracked datasets, verify current version and hash, and check whether there are uncommitted data changes."
+```
+
+#### Scenario 2: MLflow Experiment Intelligence Agent
+Queries experiment history, identifies top-performing candidate run, assesses production-readiness criteria, and checks model registry:
+```bash
+python -m agent.main --query "Find the best performing model in MLflow, evaluate if it satisfies production readiness criteria, and compare it with recent candidate runs."
+```
+
+#### Scenario 3: Apache Airflow Workflow Automation Agent
+Inspects registered training DAGs, checks pipeline run execution states, and extracts task diagnostics:
+```bash
+python -m agent.main --query "List available Airflow DAGs, check the status of the training pipeline run, and identify any failed tasks with error diagnostics."
+```
+
+#### Scenario 4: Kubernetes Operations Agent
+Inspects running pods and deployments in namespace `mlops-prod`, diagnoses container failure patterns (CrashLoopBackOff, OOMKilled), and audits deployed image versions:
+```bash
+python -m agent.main --query "Inspect Kubernetes pods and deployments in mlops-prod, diagnose any unhealthy or crashing containers, and audit the deployed app and model version."
+```
+
+#### Scenario 5: Mandatory End-to-End Multi-Tool Integration
+The complete 4-layer correlation chain (MLflow + DVC + Kubernetes + Airflow) evaluating whether retraining is necessary:
+```bash
+python -m agent.main --query "Find the best recent model, identify the dataset version used to train it, check the deployment status, and explain whether retraining is necessary."
+```
+
+---
+
+### 10.4 Running Automated Test Suites
+
+```bash
+# Run Task 5 Orchestrator & CLI tests (10 tests)
+pytest tests/test_orchestrator.py -v
+
+# Run complete MLOps AI Agent test suite across all 5 tasks (59 tests)
 pytest tests/ -v
 ```
+
 
 
 

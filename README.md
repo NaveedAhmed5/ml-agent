@@ -340,5 +340,108 @@ Run the automated test suite for the Airflow DAG and workflow tools:
 pytest tests/test_airflow_tools.py -v
 ```
 
+---
+
+## 9. Task 4: FastAPI Inference Service, Docker, and Kubernetes Operations
+
+Task 4 provides production model serving, containerization, declarative Kubernetes infrastructure, and the autonomous Kubernetes Operations Agent (`agent/tools/kubernetes_tools.py`) for cluster health auditing, automated failure diagnosis, and guarded lifecycle management.
+
+### 9.1 FastAPI Model Serving Microservice (`api/main.py`)
+
+The inference service is built with FastAPI and exposes standardized Kubernetes health probes, runtime version provenance, and real-time model inference:
+
+| Endpoint | Method | Purpose | Response Payload |
+|---|---|---|---|
+| `/healthz` | GET | Liveness probe: verifies application process is running and event loop is responsive. | `{"status": "alive", "timestamp": "..."}` |
+| `/readyz` | GET | Readiness probe: confirms the model checkpoint is loaded and operational. Returns 503 if unloaded. | `{"status": "ready", "model_loaded": true, "expected_features": 6}` |
+| `/version` | GET | Release audit: returns deployed application tag, model version, environment, and linked DVC dataset version. | `{"app_version": "1.2.0", "model_version": "1.2.0", "dvc_dataset_version": "v1.0.0", "environment": "mlops-prod"}` |
+| `/predict` | POST | Real-time classification inference: parses numeric feature vectors or named fields and returns class prediction and probabilities. | `{"prediction": 0, "confidence": 0.91, "probabilities": [0.91, 0.09], "model_name": "mlops-classifier", ...}` |
+
+#### Testing the API locally:
+
+```bash
+# Start the serving API
+uvicorn api.main:app --host 0.0.0.0 --port 8000
+
+# Perform real-time inference via curl
+curl -X POST "http://localhost:8000/predict" \
+  -H "Content-Type: application/json" \
+  -d '{"features": [1.5, -0.2, 2.1, 0.8, -0.5, 1.2]}'
+```
+
+### 9.2 Containerization (`Dockerfile`)
+
+A multi-stage, hardened Docker image based on `python:3.11-slim`:
+
+```bash
+# Build the production Docker image
+docker build -t mlops-inference-api:1.2.0 .
+
+# Run the container locally with port binding
+docker run -p 8000:8000 --name mlops-api mlops-inference-api:1.2.0
+```
+
+### 9.3 Kubernetes Production Manifests (`kubernetes/`)
+
+The infrastructure definitions target the isolated production namespace `mlops-prod`:
+
+1. **`kubernetes/configmap.yaml` (`mlops-inference-config`)**:
+   Contains non-sensitive environment configuration: `APP_VERSION: "1.2.0"`, `MODEL_NAME: "mlops-classifier"`, `MODEL_VERSION: "1.2.0"`, `DVC_DATASET_VERSION: "v1.0.0"`, `LOG_LEVEL: "INFO"`, and `MLFLOW_TRACKING_URI`.
+2. **`kubernetes/deployment.yaml` (`mlops-inference-deployment`)**:
+   Deploys `mlops-inference-api:1.2.0` with:
+   - High availability: `replicas: 2` with `RollingUpdate` strategy (`maxSurge: 1`, `maxUnavailable: 0`).
+   - Liveness probe: HTTP GET `/healthz` on port 8000.
+   - Readiness probe: HTTP GET `/readyz` on port 8000.
+   - Resource governance: Explicit requests (`cpu: 100m`, `memory: 128Mi`) and limits (`cpu: 500m`, `memory: 512Mi`).
+3. **`kubernetes/service.yaml` (`mlops-inference-service`)**:
+   Internal `ClusterIP` load balancer routing internal cluster port 80 to container port 8000.
+
+#### Deploying to Kubernetes:
+
+```bash
+# Create target namespace if not already existing
+kubectl create namespace mlops-prod --dry-run=client -o yaml | kubectl apply -f -
+
+# Apply all manifests
+kubectl apply -f kubernetes/
+```
+
+### 9.4 Kubernetes Operations Agent Tools & Enterprise Guardrails
+
+The Kubernetes Operations Agent (`agent/tools/kubernetes_tools.py`) interacts with the Kubernetes cluster using the official `kubernetes` Python client (`CoreV1Api`, `AppsV1Api`).
+
+#### Strict Safety Guardrails:
+1. **Strict Namespace Isolation**:
+   All tools enforce namespace restriction via `validate_namespace()`. Operations targeting any namespace other than the approved production namespace (default: `mlops-prod`, configurable via `K8S_APPROVED_NAMESPACE`) are **immediately rejected with status `BLOCKED`**.
+2. **State Mutation Confirmation Gate**:
+   Read-only inspections (listing, logs, service checks) execute safely. State-changing operations (`scale_or_restart_deployment`) strictly require `user_confirmed: bool = True`. Unconfirmed requests return status `BLOCKED` with a detailed confirmation request payload without altering cluster state.
+
+#### The 6 Callable Kubernetes Agent Tools:
+
+| Tool Function | Description |
+|---|---|
+| `list_pods_and_deployments(namespace)` | Lists all running pods, phases, container readiness, restart counts, and deployment replica health (desired, ready, available). |
+| `get_pod_status_and_logs(pod_name, namespace, tail_lines)` | Retrieves detailed container lifecycle states (running, waiting, terminated) and recent log tail for rapid troubleshooting. |
+| `inspect_services(namespace)` | Lists Kubernetes services, ClusterIPs, port bindings, and label selectors. |
+| `diagnose_unhealthy_pods(namespace)` | Automated diagnostic engine scanning for `CrashLoopBackOff`, `OOMKilled`, `ImagePullBackOff`, `Pending`, and readiness probe failures with actionable remediation steps. |
+| `get_deployed_app_version(namespace)` | Inspects deployed container images and active ConfigMap values to audit active release and model version provenance. |
+| `scale_or_restart_deployment(...)` | Safely scales replica count or initiates rolling restart (via pod template annotations). **Enforces explicit confirmation gate (`user_confirmed=True`).** |
+
+### 9.5 Running Task 4 and Full Test Suite
+
+Run the automated test suites for the inference API and Kubernetes operations tools:
+
+```bash
+# Run API endpoint tests
+pytest tests/test_api.py -v
+
+# Run Kubernetes operations agent tests
+pytest tests/test_kubernetes_tools.py -v
+
+# Run complete project test suite across all 4 domains (49 tests)
+pytest tests/ -v
+```
+
+
 
 

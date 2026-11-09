@@ -428,6 +428,65 @@ class K8sListResourcesOutput(BaseModel):
     items: list[dict[str, Any]] = Field(default_factory=list, description="Resource summary items")
 
 
+class K8sListPodsDeploymentsOutput(BaseModel):
+    """Output schema for listing Pods and Deployments in a namespace."""
+    namespace: str = Field(description="Kubernetes namespace")
+    deployments: list[dict[str, Any]] = Field(default_factory=list, description="Deployments with replica status")
+    pods: list[dict[str, Any]] = Field(default_factory=list, description="Pods with phase and container readiness")
+    total_deployments: int = Field(ge=0, description="Total deployments found")
+    total_pods: int = Field(ge=0, description="Total pods found")
+
+
+class K8sPodStatusLogsOutput(BaseModel):
+    """Output schema for pod status and recent container logs."""
+    namespace: str = Field(description="Kubernetes namespace")
+    pod_name: str = Field(description="Pod name")
+    phase: str = Field(description="Pod lifecycle phase: Running, Pending, Failed, etc.")
+    is_ready: bool = Field(description="Whether all containers are ready")
+    restart_count: int = Field(ge=0, description="Cumulative restart count across containers")
+    container_states: dict[str, Any] = Field(default_factory=dict, description="Detailed container state dictionary")
+    logs: str = Field(description="Recent container log tail")
+
+
+class K8sInspectServicesOutput(BaseModel):
+    """Output schema for inspected Services in a namespace."""
+    namespace: str = Field(description="Kubernetes namespace")
+    services: list[dict[str, Any]] = Field(default_factory=list, description="List of inspected service details")
+    total_services: int = Field(ge=0, description="Total services count")
+
+
+class K8sDiagnoseUnhealthyPodsOutput(BaseModel):
+    """Output schema for diagnosing unhealthy pods in a namespace."""
+    namespace: str = Field(description="Kubernetes namespace")
+    unhealthy_pods: list[dict[str, Any]] = Field(default_factory=list, description="Diagnosed unhealthy pods")
+    total_unhealthy: int = Field(ge=0, description="Count of unhealthy pods found")
+    diagnosis_summary: str = Field(description="Executive diagnosis summary")
+    recommendations: list[str] = Field(default_factory=list, description="Recommended remediation actions")
+
+
+class K8sDeployedAppVersionOutput(BaseModel):
+    """Output schema for currently deployed application and model version."""
+    namespace: str = Field(description="Kubernetes namespace")
+    app_name: str = Field(description="Application or deployment name")
+    app_version: str = Field(description="Application version tag")
+    model_version: str = Field(description="Model version tag or label")
+    container_image: str = Field(description="Full container image reference")
+    config_map_values: dict[str, str] = Field(default_factory=dict, description="Active ConfigMap key-value pairs")
+    dvc_dataset_version: str | None = Field(default=None, description="Linked DVC dataset version")
+
+
+class K8sScaleRestartOutput(BaseModel):
+    """Output schema for scaling or restarting a deployment."""
+    namespace: str = Field(description="Target namespace")
+    deployment_name: str = Field(description="Deployment resource modified")
+    desired_replicas: int = Field(ge=0, description="Target replica count requested")
+    previous_replicas: int = Field(ge=0, description="Replica count prior to operation")
+    user_confirmed: bool = Field(description="Confirmation status")
+    action: str = Field(description="Action executed: SCALED or RESTARTED")
+    message: str = Field(description="Operational outcome message")
+
+
+
 class K8sNamespaceGuardInput(BaseModel):
     """Guard schema to validate whether a target namespace is pre-approved."""
     target_namespace: str = Field(min_length=1, description="Requested namespace")

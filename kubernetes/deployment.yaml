@@ -1,16 +1,16 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mlops-api-deployment
+  name: mlops-inference-deployment
   namespace: mlops-prod
   labels:
-    app: mlops-api
+    app: mlops-inference-api
     tier: serving
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: mlops-api
+      app: mlops-inference-api
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -19,36 +19,39 @@ spec:
   template:
     metadata:
       labels:
-        app: mlops-api
+        app: mlops-inference-api
         tier: serving
     spec:
       containers:
         - name: inference-api
-          image: mlops-api:latest
+          image: mlops-inference-api:1.2.0
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8000
               name: http
           envFrom:
             - configMapRef:
-                name: mlops-api-config
+                name: mlops-inference-config
           resources:
             requests:
-              cpu: "250m"
-              memory: "256Mi"
+              cpu: "100m"
+              memory: "128Mi"
             limits:
-              cpu: "1000m"
+              cpu: "500m"
               memory: "512Mi"
           livenessProbe:
             httpGet:
-              path: /health
+              path: /healthz
               port: 8000
             initialDelaySeconds: 10
             periodSeconds: 15
+            timeoutSeconds: 3
+            failureThreshold: 3
           readinessProbe:
             httpGet:
-              path: /health
+              path: /readyz
               port: 8000
             initialDelaySeconds: 5
             periodSeconds: 10
-
+            timeoutSeconds: 3
+            failureThreshold: 2

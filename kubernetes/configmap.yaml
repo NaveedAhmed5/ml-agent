@@ -1,14 +1,16 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: mlops-api-config
+  name: mlops-inference-config
   namespace: mlops-prod
   labels:
-    app: mlops-api
-    environment: production
+    app: mlops-inference-api
+    environment: mlops-prod
 data:
-  AGENT_ENV: "production"
-  MLFLOW_TRACKING_URI: "http://mlflow-service.mlops-prod.svc.cluster.local:5000"
-  MODEL_NAME: "iris-classifier"
+  APP_VERSION: "1.2.0"
+  MODEL_NAME: "mlops-classifier"
+  MODEL_VERSION: "1.2.0"
+  DVC_DATASET_VERSION: "v1.0.0"
   LOG_LEVEL: "INFO"
-
+  AGENT_ENV: "mlops-prod"
+  MLFLOW_TRACKING_URI: "http://mlflow-service.mlops-prod.svc.cluster.local:5000"

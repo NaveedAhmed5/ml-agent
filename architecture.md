@@ -88,7 +88,7 @@ The agent operates under strict safety guardrails. State-changing operations req
 - **Resolution:** Reverted the training hyperparameters in `train.py` to restore model convergence, re-triggered the Airflow pipeline via the agent, and verified successful completion.
 ![Failure 2: Airflow Quality Gate Failure Diagnosis](screenshots/failure_2_airflow_quality_gate.png)
 
-## 5. Known Limitations and Proposed Improvements
+## 5. Known Limitations & Proposed Improvements
 - **Local Infrastructure Constraint:** The current K8s and Airflow setup relies on local configurations (Docker Desktop / local webservers). **Improvement:** Migrate to managed cloud services (AWS EKS, MWAA) using Cloud IAM roles instead of local `.kube/config` and basic auth.
 - **Context Window Limits:** Fetching raw container logs or Airflow task logs can quickly consume LLM token limits if a service throws massive stack traces. **Improvement:** Implement an intermediate log-summarization/truncation layer inside the Python tools before passing the payload to the LLM.
 - **Synchronous Tool Calling:** Polling Airflow DAG status blocks the agent thread until completion. **Improvement:** Implement asynchronous tool execution (Webhooks/Callbacks) so the agent can report *"Pipeline started, I will notify you when it finishes"* without hanging the CLI.

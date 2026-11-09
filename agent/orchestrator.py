@@ -475,7 +475,7 @@ CRITICAL OPERATIONAL & REASONING RULES:
             return self._execute_mlflow_scenario(goal, request_id)
 
         # Scenario 4: Airflow Workflow Automation
-        elif any(w in goal_lower for w in ["airflow", "dag", "task", "pipeline failed"]):
+        elif any(w in goal_lower for w in ["airflow", "dag", "task", "pipeline", "trigger"]):
             return self._execute_airflow_scenario(goal, request_id)
 
         # Scenario 5: Kubernetes Cluster Operations
@@ -692,6 +692,13 @@ CRITICAL OPERATIONAL & REASONING RULES:
             list_available_dags(request_id=f"{request_id}_dags"),
             get_dag_run_status(dag_id="mlops_model_training_pipeline", request_id=f"{request_id}_run"),
         ]
+        goal_lower = goal.lower()
+        if "trigger" in goal_lower:
+            steps.append(trigger_training_dag(dag_id="mlops_model_training_pipeline", request_id=f"{request_id}_trigger"))
+        if "fail" in goal_lower or "diagnos" in goal_lower:
+            steps.append(identify_failed_tasks(dag_id="mlops_model_training_pipeline", dag_run_id="manual__demo_run_1", request_id=f"{request_id}_failed"))
+            steps.append(get_task_diagnostics(dag_id="mlops_model_training_pipeline", dag_run_id="manual__demo_run_1", task_id="quality_gate", request_id=f"{request_id}_diag"))
+
         known_facts = []
         uncertainties = []
         for s in steps:

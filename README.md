@@ -121,6 +121,21 @@ Key environment variables:
 - `K8S_APPROVED_NAMESPACE`: Permitted Kubernetes deployment namespace (`mlops-prod`).
 - `DVC_REMOTE_NAME`: DVC remote storage identifier (`local_remote`).
 
+### 4.5 Standing Up Local Live Infrastructure (PowerShell Automation)
+
+To stand up the complete live infrastructure (Kubernetes deployment, Dockerized Airflow, and background MLflow UI) for recording assignment evidence:
+
+```powershell
+# 1. Automate standing up all live local services
+.\start_live_infrastructure.ps1
+
+# 2. Execute the autonomous AI agent against live infrastructure
+python -m agent.main --query "Find the best recent model, identify the dataset version used to train it, check the deployment status, and explain whether retraining is necessary."
+
+# 3. Clean up and stop all live services when finished
+.\stop_live_infrastructure.ps1
+```
+
 ---
 
 ## 5. Running the Agent & Services

@@ -10,8 +10,9 @@ import json
 import logging
 import re
 import sys
-from datetime import datetime, timezone
-from typing import Any, Mapping
+from collections.abc import Mapping
+from datetime import UTC, datetime
+from typing import Any
 
 # Sensitive key patterns to redact
 SENSITIVE_KEY_PATTERN = re.compile(
@@ -92,8 +93,8 @@ class JSONFormatter(logging.Formatter):
     """Formats log records as single-line JSON objects."""
 
     def format(self, record: logging.LogRecord) -> str:
-        timestamp = datetime.now(timezone.utc).isoformat()
-        
+        timestamp = datetime.now(UTC).isoformat()
+
         # Standard structured fields
         log_entry: dict[str, Any] = {
             "timestamp": timestamp,
@@ -118,6 +119,11 @@ class JSONFormatter(logging.Formatter):
                     log_entry[optional_field] = redact_sensitive_data(val)
 
         return json.dumps(log_entry, default=str)
+
+
+# Compatibility aliases
+JsonFormatter = JSONFormatter
+mask_sensitive_data = redact_sensitive_data
 
 
 def get_logger(

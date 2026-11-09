@@ -16,17 +16,17 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
 import joblib
 import numpy as np
 import pandas as pd
+import yaml
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, roc_auc_score
 from sklearn.model_selection import train_test_split
-import yaml
 
 # Configure task logger
 logger = logging.getLogger("airflow.task.mlops_training_pipeline")
@@ -89,7 +89,7 @@ def task_validate_data(
         "null_ratio": round(null_ratio, 4),
         "dvc_md5": dvc_md5,
         "dataset_version": str(df["dataset_version"].iloc[0]) if "dataset_version" in df.columns else "v1.0.0",
-        "validated_at": datetime.now(timezone.utc).isoformat(),
+        "validated_at": datetime.now(UTC).isoformat(),
     }
     logger.info(f"Stage 1 Completed Successfully: {report}")
     return report
@@ -217,6 +217,7 @@ def task_evaluate_and_log_mlflow(
     # Log to MLflow
     import mlflow
     import mlflow.sklearn
+
     from training.train import get_git_commit, resolve_mlflow_tracking_uri
 
     tracking_uri = resolve_mlflow_tracking_uri()
@@ -293,8 +294,8 @@ def task_quality_gate(
         raise RuntimeError(reason)
 
     # Quality Gate Passed: Promote / Register model in MLflow
-    import mlflow
     from mlflow.tracking import MlflowClient
+
     from training.train import resolve_mlflow_tracking_uri
 
     client = MlflowClient(tracking_uri=resolve_mlflow_tracking_uri())
@@ -312,7 +313,7 @@ def task_quality_gate(
         "registered_model": registered_model_name,
         "model_version": model_version.version,
         "metrics_achieved": {"f1_score": f1, "accuracy": acc},
-        "promoted_at": datetime.now(timezone.utc).isoformat(),
+        "promoted_at": datetime.now(UTC).isoformat(),
     }
     logger.info(f"Stage 5 Completed Successfully: {decision}")
     return decision

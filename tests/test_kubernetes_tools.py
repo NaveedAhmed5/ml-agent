@@ -14,6 +14,7 @@ Verifies:
 from __future__ import annotations
 
 from unittest.mock import MagicMock
+
 import pytest
 
 from agent.schemas import ToolExecutionStatus
@@ -27,7 +28,6 @@ from agent.tools.kubernetes_tools import (
     set_k8s_clients,
     validate_namespace,
 )
-
 
 # ------------------------------------------------------------------------------
 # Test Fixtures & Mocks

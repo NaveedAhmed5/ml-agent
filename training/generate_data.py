@@ -7,9 +7,9 @@ supporting v1 and v2 profiles to evaluate data drift, versioning, and DVC tracki
 from __future__ import annotations
 
 import argparse
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-import numpy as np
+
 import pandas as pd
 from sklearn.datasets import make_classification
 
@@ -66,7 +66,7 @@ def generate_dataset(
     df = pd.DataFrame(X, columns=feature_cols)
     df["target"] = y
     df["dataset_version"] = version_label
-    df["generated_at"] = datetime.now(timezone.utc).isoformat()
+    df["generated_at"] = datetime.now(UTC).isoformat()
 
     out_file = Path(output_path)
     out_file.parent.mkdir(parents=True, exist_ok=True)

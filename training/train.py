@@ -10,9 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import shutil
 import subprocess
-import sys
 import urllib.request
 from pathlib import Path
 from typing import Any
@@ -20,6 +18,7 @@ from typing import Any
 import joblib
 import numpy as np
 import pandas as pd
+import yaml
 from sklearn.datasets import load_iris
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
@@ -31,7 +30,6 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 from sklearn.model_selection import train_test_split
-import yaml
 
 # ------------------------------------------------------------------------------
 # 1. Provenance Helpers
@@ -282,7 +280,7 @@ def run_training_pipeline(
         print(f"[pipeline] {data_file} not found; fallback to synthetic binary iris dataset ({len(df)} records)")
 
     # 2. Validate data
-    validation = validate_data(df)
+    validate_data(df)
 
     # 3. Preprocess
     random_state = int(hyperparams.get("random_state", 42))

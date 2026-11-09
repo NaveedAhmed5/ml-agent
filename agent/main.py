@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
+
 from agent.logger import get_logger
 from agent.orchestrator import MLOpsOrchestrator
 from agent.schemas import ToolExecutionStatus

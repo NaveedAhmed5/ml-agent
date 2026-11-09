@@ -8,15 +8,14 @@ from __future__ import annotations
 
 import os
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, status
 import joblib
 import numpy as np
+from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel, Field
-
 
 # ------------------------------------------------------------------------------
 # Request & Response Schemas
@@ -162,7 +161,7 @@ app = FastAPI(
 @app.get("/healthz", tags=["Kubernetes Probes"])
 def healthz() -> dict[str, str]:
     """Liveness probe: verifies that the FastAPI application container is running."""
-    return {"status": "alive", "timestamp": datetime.now(timezone.utc).isoformat()}
+    return {"status": "alive", "timestamp": datetime.now(UTC).isoformat()}
 
 
 @app.get("/readyz", tags=["Kubernetes Probes"])
@@ -222,7 +221,7 @@ def predict(features: ModelFeatures) -> PredictionResponse:
             model_name=model_holder.model_name,
             model_version=model_holder.model_version,
             app_version=os.getenv("APP_VERSION", "1.2.0"),
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
         )
     except Exception as exc:
         raise HTTPException(

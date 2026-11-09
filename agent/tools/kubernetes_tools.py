@@ -18,13 +18,12 @@ Safety Guardrails:
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
 import os
 import threading
 import time
+from datetime import UTC, datetime
 from typing import Any
 
-from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 
 from agent.logger import get_logger, log_tool_execution
@@ -39,6 +38,7 @@ from agent.schemas import (
     ToolExecutionResult,
     ToolExecutionStatus,
 )
+from kubernetes import client, config
 
 logger = get_logger("kubernetes_tools")
 
@@ -924,7 +924,7 @@ def scale_or_restart_deployment(
         prev_replicas = getattr(getattr(curr_dep, "spec", None), "replicas", 0) or 0
 
         if restart:
-            now_iso = datetime.now(timezone.utc).isoformat()
+            now_iso = datetime.now(UTC).isoformat()
             patch_body = {
                 "spec": {
                     "template": {

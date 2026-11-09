@@ -1,7 +1,7 @@
 """Unit tests for Airflow Training DAG and Workflow Agent Tools (Task 3 — 15 Marks)."""
 
 import pytest
-import requests
+
 from agent.schemas import ToolExecutionStatus
 from agent.tools.airflow_tools import (
     APPROVED_DAGS,
@@ -18,7 +18,6 @@ from dags.training_pipeline import (
     task_train_model,
     task_validate_data,
 )
-
 
 # ------------------------------------------------------------------------------
 # 1. Tests for DAG Task Callables (Standalone Verification)

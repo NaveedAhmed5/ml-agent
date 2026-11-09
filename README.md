@@ -549,9 +549,83 @@ python -m agent.main --query "Find the best recent model, identify the dataset v
 # Run Task 5 Orchestrator & CLI tests (10 tests)
 pytest tests/test_orchestrator.py -v
 
-# Run complete MLOps AI Agent test suite across all 5 tasks (59 tests)
+# Run complete MLOps AI Agent test suite (75 tests)
 pytest tests/ -v
 ```
+
+---
+
+## 11. Phase 6: Reliability, Safety, Failure Injection, and Architecture Report
+
+Phase 6 hardens the system with comprehensive automated testing, deliberate failure injection and root-cause analysis, a GitHub Actions continuous integration workflow, and a technical architecture report.
+
+### 11.1 Comprehensive Automated Testing Suite (75 Tests)
+
+The test suite contains **75 automated tests** across 8 test modules covering all rubric requirements:
+
+| Test File | Test Count | Focus Area |
+|---|---|---|
+| `tests/test_tools.py` | 9 | Tests 1-4 (tool execution across DVC, MLflow, Airflow, K8s) & Test 5 (timeouts, HTTP 500, invalid parameters). |
+| `tests/test_safety.py` | 7 | Test 6 (anti-hallucination), Test 7 (K8s namespace & confirmation), Test 8 (Airflow approved DAGs), Test 9 (JSON logging & secret redaction), Test 10 (multi-tool retraining policy). |
+| `tests/test_orchestrator.py` | 10 | Tool registry completeness (21 tools), offline rule router, multi-tool chain execution, scenario routing. |
+| `tests/test_kubernetes_tools.py` | 18 | Pod/deployment listing, log inspection, services, multi-state failure diagnosis (CrashLoop, OOM), guarded scaling. |
+| `tests/test_airflow_tools.py` | 11 | End-to-end 5-stage DAG execution, validation failure, quality gate rejection, REST API client error handling. |
+| `tests/test_mlflow_tools.py` | 6 | Search runs, run details, multi-criteria production-readiness check, side-by-side run comparisons. |
+| `tests/test_dvc_tools.py` | 6 | Command allowlisting security, dataset tracking, hash verification, change detection, reproduction plans. |
+| `tests/test_api.py` | 8 | FastAPI probes (`/healthz`, `/readyz`), release metadata (`/version`), real-time inference (`/predict`). |
+
+#### Running the Test Suite:
+```bash
+# Run linting check across entire codebase (0 errors)
+ruff check .
+
+# Run the complete test suite (75 tests passing)
+pytest tests/ -v
+```
+
+---
+
+### 11.2 Failure Injection & Autonomous Diagnosis (`training/inject_failures.py`)
+
+A specialized demonstration script simulates two realistic production failure modes and demonstrates autonomous agent diagnosis:
+
+#### Failure 1: Data & Pipeline Layer (Quality Gate Rejection)
+- **Symptom**: Airflow training pipeline fails during the `quality_gate` stage due to a noisy/corrupted incoming dataset.
+- **Agent Diagnosis**: Agent invokes `identify_failed_tasks` to isolate `quality_gate`, then calls `get_task_diagnostics` to extract logs, revealing that candidate model F1 (`0.4180`) and accuracy (`0.5420`) fell below the required `0.7500` threshold, successfully protecting production from model degradation.
+
+#### Failure 2: Infrastructure & Kubernetes Layer (Pod CrashLoopBackOff & OOMKilled)
+- **Symptom**: Serving deployment `mlops-inference-deployment` has 0/2 ready pods with repeated container restarts.
+- **Agent Diagnosis**: Agent calls `diagnose_unhealthy_pods` detecting `CRASH_LOOP_BACKOFF` and container restart loop, then calls `get_pod_status_and_logs` to inspect the traceback. Identifies that an invalid model checkpoint path in `ConfigMap` caused a `FileNotFoundError` followed by kernel `OOMKilled` (Exit Code 137). Recommends updating `ConfigMap` and raising `resources.limits.memory`.
+
+#### Running Failure Injections:
+```bash
+# Run Failure 1 demo (Data / Quality Gate)
+python training/inject_failures.py --failure 1
+
+# Run Failure 2 demo (Kubernetes CrashLoop / OOM)
+python training/inject_failures.py --failure 2
+
+# Run both failure simulations sequentially
+python training/inject_failures.py --all
+```
+
+---
+
+### 11.3 Continuous Integration Workflow (`.github/workflows/ci.yml`)
+
+A production GitHub Actions workflow runs on every `push` and `pull_request` to `main`:
+1. Checks out repository with full Git history.
+2. Sets up Python 3.11 with pip caching.
+3. Installs dependencies from `pyproject.toml`.
+4. Runs `ruff check .` for automated code formatting and quality enforcement.
+5. Executes `pytest tests/ -v` with mocked external services to guarantee 100% reliable CI validation.
+
+---
+
+### 11.4 Technical Architecture Report (`architecture.md`)
+
+For complete system design diagrams, tool schema matrices, detailed scenario execution traces, and defense walkthroughs, see [`architecture.md`](architecture.md).
+
 
 
 

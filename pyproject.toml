@@ -58,7 +58,7 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP"]
-ignore = ["E501"]
+ignore = ["E501", "N803", "N806", "E402", "UP042"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -66,3 +66,17 @@ python_files = ["test_*.py"]
 python_functions = ["test_*"]
 addopts = "-v --tb=short"
 
+[tool.pyrefly]
+project-includes = ["agent", "api", "training", "tests"]
+exclude = [
+    "**/.venv/**",
+    "**/venv/**",
+    "**/node_modules/**",
+    "**/__pycache__/**",
+    "**/.pytest_cache/**",
+    "**/.git/**",
+    "**/mlruns/**",
+    "**/.dvc/**",
+    "**/dist/**",
+    "**/build/**"
+]

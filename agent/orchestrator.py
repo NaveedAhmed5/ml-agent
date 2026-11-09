@@ -24,18 +24,23 @@ from __future__ import annotations
 
 import json
 import os
-import time
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable
+from typing import Any
 
-from agent.logger import get_logger, log_tool_execution
+from agent.logger import get_logger
 from agent.schemas import (
-    AgentAction,
-    AgentExecutionPlan,
     AgentResponse,
     ToolExecutionResult,
     ToolExecutionStatus,
+)
+from agent.tools.airflow_tools import (
+    get_dag_run_status,
+    get_task_diagnostics,
+    identify_failed_tasks,
+    list_available_dags,
+    trigger_training_dag,
 )
 
 # Import all domain tools
@@ -46,20 +51,6 @@ from agent.tools.dvc_tools import (
     get_current_dataset_version,
     list_dvc_tracked_datasets,
 )
-from agent.tools.mlflow_tools import (
-    compare_runs,
-    find_best_run,
-    get_model_registry_info,
-    get_run_details,
-    list_experiments_and_runs,
-)
-from agent.tools.airflow_tools import (
-    get_dag_run_status,
-    get_task_diagnostics,
-    identify_failed_tasks,
-    list_available_dags,
-    trigger_training_dag,
-)
 from agent.tools.kubernetes_tools import (
     diagnose_unhealthy_pods,
     get_deployed_app_version,
@@ -67,7 +58,13 @@ from agent.tools.kubernetes_tools import (
     inspect_services,
     list_pods_and_deployments,
     scale_or_restart_deployment,
-    validate_namespace,
+)
+from agent.tools.mlflow_tools import (
+    compare_runs,
+    find_best_run,
+    get_model_registry_info,
+    get_run_details,
+    list_experiments_and_runs,
 )
 
 logger = get_logger("orchestrator")
@@ -395,7 +392,7 @@ class ToolRegistry:
 class MLOpsOrchestrator:
     """Enterprise AI Agent Orchestrator for end-to-end MLOps management."""
 
-    SYSTEM_PROMPT = """You are the MLOps Production AI Agent, an autonomous expert managing end-to-end 
+    SYSTEM_PROMPT = """You are the MLOps Production AI Agent, an autonomous expert managing end-to-end
 Machine Learning Operations across DVC (data versioning), MLflow (experiment tracking),
 Apache Airflow (workflow scheduling), and Kubernetes (model serving infrastructure).
 
@@ -437,7 +434,6 @@ CRITICAL OPERATIONAL & REASONING RULES:
     def plan_and_execute(self, goal: str, request_id: str | None = None) -> AgentResponse:
         """Analyze user goal, coordinate tool executions, and produce grounded response."""
         req_id = request_id or f"req_{uuid.uuid4().hex[:8]}"
-        start_time = time.perf_counter()
         self.logger.info(
             f"Received goal: '{goal}'",
             extra={"request_id": req_id, "tool_name": "orchestrator", "status": "START", "duration_ms": 0.0},
@@ -465,7 +461,6 @@ CRITICAL OPERATIONAL & REASONING RULES:
     def _execute_with_rule_router(self, goal: str, request_id: str) -> AgentResponse:
         """Deterministic, grounded execution engine for offline, test, and demo environments."""
         goal_lower = goal.lower()
-        steps_executed: list[ToolExecutionResult] = []
 
         # Scenario 1: The Mandatory Integration Scenario (Multi-tool correlation & Retraining Decision)
         if any(w in goal_lower for w in ["retrain", "retraining", "necessary", "best recent", "identify the dataset version", "deployment status"]):

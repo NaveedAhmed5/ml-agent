@@ -54,23 +54,23 @@ The agent operates under strict safety guardrails. State-changing operations req
 
 ### Scenario 1: Dataset Provenance
 **Query:** `"Which dataset version was used for the latest training run, and what is its Git commit?"`  
-![Scenario 1: DVC Dataset Provenance](screenshots/scenario_1_dvc.png)
+![Scenario 1: DVC Dataset Provenance](screenshots/scenario_1_dvc.PNG)
 
 ### Scenario 2: Model Selection
 **Query:** `"Compare our recent training runs and recommend the best candidate based on F1 score."`  
-![Scenario 2: MLflow Model Selection](screenshots/scenario_2_mlflow.png)
+![Scenario 2: MLflow Model Selection](screenshots/scenario_2_mlflow.PNG)
 
 ### Scenario 3: Pipeline Execution
 **Query:** `"Trigger the model training pipeline and report whether execution succeeded."`  
-![Scenario 3: Airflow Pipeline Execution](screenshots/scenario_3_airflow.png)
+![Scenario 3: Airflow Pipeline Execution](screenshots/scenario_3_airflow.PNG)
 
 ### Scenario 4: Deployment Diagnosis
 **Query:** `"Check the status of my Kubernetes pods and diagnose any issues."`  
-![Scenario 4: Kubernetes Deployment Diagnosis](screenshots/scenario_4_kubernetes.png)
+![Scenario 4: Kubernetes Deployment Diagnosis](screenshots/scenario_4_kubernetes.PNG)
 
 ### Scenario 5: Multi-Tool Reasoning
 **Query:** `"Find the best recent model, identify the dataset version used to train it, check the deployment status, and explain whether retraining is necessary."`  
-![Scenario 5: Multi-Tool Reasoning & Retraining Assessment](screenshots/scenario_5_multi_tool.png)
+![Scenario 5: Multi-Tool Reasoning & Retraining Assessment](screenshots/scenario_5_multi_tool.PNG)
 
 ## 4. Failure Investigations
 
@@ -79,14 +79,14 @@ The agent operates under strict safety guardrails. State-changing operations req
 - **Agent Trace/Diagnosis:** The user asked the agent to diagnose the pods. The agent used `diagnose_unhealthy_pods` and identified that `mlops-inference-deployment` was failing with an `ImagePullBackOff` / `ErrImagePull` status.
 - **Root Cause:** The `deployment.yaml` was intentionally modified to pull a non-existent Docker image tag (`mlops-inference-api:BROKEN`).
 - **Resolution:** Reverted the container image tag in `deployment.yaml` back to `1.2.0` and applied the fix via `kubectl apply -f kubernetes/deployment.yaml`. The agent subsequently confirmed the pods transitioned to `Running`.
-![Failure 1: Kubernetes ImagePullBackOff Diagnosis](screenshots/failure_1_k8s_imagepull.png)
+![Failure 1: Kubernetes ImagePullBackOff Diagnosis](screenshots/failure_1_k8s_imagepull.PNG)
 
 ### Failure 2: Airflow Pipeline Quality Gate Failure
 - **Symptom:** The Airflow DAG `mlops_model_training_pipeline` failed before completing.
 - **Agent Trace/Diagnosis:** The user asked the agent to identify failed tasks. The agent used `identify_failed_tasks` and `get_task_diagnostics` to pinpoint that the `quality_gate` task raised an exception.
 - **Root Cause:** The training script was intentionally modified to simulate a degraded model where the F1 score fell below the strict 0.75 production threshold requirement, triggering the automated pipeline halt.
 - **Resolution:** Reverted the training hyperparameters in `train.py` to restore model convergence, re-triggered the Airflow pipeline via the agent, and verified successful completion.
-![Failure 2: Airflow Quality Gate Failure Diagnosis](screenshots/failure_2_airflow_quality_gate.png)
+![Failure 2: Airflow Quality Gate Failure Diagnosis](screenshots/failure_2_airflow_quality_gate.PNG)
 
 ## 5. Known Limitations & Proposed Improvements
 - **Local Infrastructure Constraint:** The current K8s and Airflow setup relies on local configurations (Docker Desktop / local webservers). **Improvement:** Migrate to managed cloud services (AWS EKS, MWAA) using Cloud IAM roles instead of local `.kube/config` and basic auth.
